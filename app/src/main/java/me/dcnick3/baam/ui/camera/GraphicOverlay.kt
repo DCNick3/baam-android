@@ -2,12 +2,9 @@ package me.dcnick3.baam.ui.camera
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Rect
-import android.graphics.RectF
 import android.util.AttributeSet
-import android.util.Size
 import android.view.View
-import java.util.ArrayList
+import me.dcnick3.baam.ui.camera.GraphicOverlay.Graphic
 
 /**
  * A view which renders a series of custom graphics to be overlaid on top of an associated preview
