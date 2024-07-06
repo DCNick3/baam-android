@@ -89,7 +89,7 @@ class BaamCookieStorage : CookiesStorage {
 
 typealias ApiResult<R> = Result<R, BaamError>
 
-const val baamDomain = "baam.duckdns.org"
+const val baamDomain = "baam.tatar"
 val baamBaseUrl = "https://$baamDomain/"
 
 class BaamApi internal constructor() {
