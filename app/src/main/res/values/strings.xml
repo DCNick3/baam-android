@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">baam</string>
+    <string name="text_file_sizes">B|KiB|MiB|GiB|TiB</string>
 </resources>

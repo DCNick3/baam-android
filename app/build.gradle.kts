@@ -3,6 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp") version "1.9.10-1.0.13"
     kotlin("plugin.serialization") version "1.9.0"
+    id("kotlin-parcelize")
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -14,7 +17,7 @@ android {
         minSdk = 21
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -41,6 +44,9 @@ android {
                 "proguard-rules.pro"
             )
         }
+        productFlavors {
+            setProperty("archivesBaseName", "baam-${defaultConfig.versionName}")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -52,6 +58,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.3"
@@ -79,6 +86,11 @@ dependencies {
     implementation("androidx.compose.runtime:runtime:1.5.1")
     implementation("androidx.compose.runtime:runtime-livedata:1.5.1")
     implementation("androidx.navigation:navigation-compose:2.7.2")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1")
+
+    kapt("com.google.dagger:hilt-android-compiler:2.44")
+    implementation("com.google.dagger:hilt-android:2.44")
+    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
 
     val camerax = "1.2.3"
     implementation("androidx.camera:camera-core:${camerax}")
@@ -119,4 +131,6 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    implementation("com.github.jeziellago:compose-markdown:0.5.0")
 }

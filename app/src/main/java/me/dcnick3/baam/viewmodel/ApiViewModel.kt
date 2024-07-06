@@ -13,6 +13,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.ktor.http.HttpStatusCode
 import java9.util.concurrent.CompletableFuture
 import kotlinx.coroutines.channels.Channel
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import me.dcnick3.baam.api.AppUpdateRepository
 import me.dcnick3.baam.api.BaamError
 import me.dcnick3.baam.api.ParsedChallenge
 import me.dcnick3.baam.api.baamApi
@@ -28,6 +30,7 @@ import me.dcnick3.baam.api.baamBaseUrl
 import me.dcnick3.baam.api.baamDomain
 import me.dcnick3.baam.api.parseCookies
 import me.dcnick3.baam.utils.await
+import javax.inject.Inject
 import kotlin.properties.ReadOnlyProperty
 
 private const val TAG = "ApiViewModel"
@@ -46,15 +49,16 @@ class DataRepository(private val dataStore: DataStore<Preferences>) {
             }
         }
     }
+
     suspend fun getCookie(): String? {
         return dataStore.data.first()[cookieKey]
     }
 }
 
 private val Context.dataRepository: DataRepository by
-    ReadOnlyProperty<Context, DataRepository> { context, _ ->
-        DataRepository(context.dataStore)
-    }
+ReadOnlyProperty<Context, DataRepository> { context, _ ->
+    DataRepository(context.dataStore)
+}
 
 enum class AuthState {
     Authenticated,
@@ -62,18 +66,25 @@ enum class AuthState {
 }
 
 sealed class ChallengeResult {
-    data class Success(val code: String): ChallengeResult()
-    data object Unacceptable: ChallengeResult()
-    data class Error(val error: String): ChallengeResult()
+    data class Success(val code: String) : ChallengeResult()
+    data object Unacceptable : ChallengeResult()
+    data class Error(val error: String) : ChallengeResult()
 }
 
 sealed class Command {
-    data object CheckAuth: Command()
-    data class SetCookie(val cookie: String): Command()
-    data class SubmitChallenge(val challenge: ParsedChallenge, val fut: CompletableFuture<ChallengeResult>): Command()
+    data object CheckAuth : Command()
+    data class SetCookie(val cookie: String) : Command()
+    data class SubmitChallenge(
+        val challenge: ParsedChallenge,
+        val fut: CompletableFuture<ChallengeResult>
+    ) : Command()
 }
 
-class ApiViewModel(application: Application): AndroidViewModel(application) {
+@HiltViewModel
+class ApiViewModel @Inject constructor(
+    val updateRepository: AppUpdateRepository,
+    application: Application
+) : AndroidViewModel(application) {
     private val commandChannel = Channel<Command>(2)
 
     private val context get() = getApplication<Application>().applicationContext
@@ -95,33 +106,41 @@ class ApiViewModel(application: Application): AndroidViewModel(application) {
                         }
                         checkAuth(cookies)
                     }
+
                     is Command.SetCookie -> {
                         checkAuth(cmd.cookie)
                     }
+
                     is Command.SubmitChallenge -> {
                         val challenge = cmd.challenge
                         if (challenge.url.host != baamDomain) {
                             Log.w(TAG, "Invalid challenge URL: ${challenge.url}")
                         }
-                        val feedback = when (val result = baamApi.submitChallenge(challenge.code, challenge.challenge)) {
+                        val feedback = when (val result =
+                            baamApi.submitChallenge(challenge.code, challenge.challenge)) {
                             is Ok -> {
                                 ChallengeResult.Success(result.value)
                             }
+
                             is Err -> {
                                 when (val error = result.error) {
                                     BaamError.HttpError(HttpStatusCode.Forbidden) -> {
                                         ChallengeResult.Unacceptable
                                     }
+
                                     BaamError.AuthNeeded -> {
                                         onInvalidAuth()
                                         ChallengeResult.Error("Auth needed")
                                     }
+
                                     BaamError.HttpError(HttpStatusCode.NotFound) -> {
                                         ChallengeResult.Error("Session not found")
                                     }
+
                                     is BaamError.HttpError -> {
                                         ChallengeResult.Error("HTTP Error: ${error.code}")
                                     }
+
                                     is BaamError.NetworkError -> {
                                         ChallengeResult.Error("Network error: ${error.error}")
                                     }
@@ -133,6 +152,9 @@ class ApiViewModel(application: Application): AndroidViewModel(application) {
                     }
                 }
             }
+        }
+        viewModelScope.launch {
+            updateRepository.fetchUpdate()
         }
     }
 
@@ -152,9 +174,11 @@ class ApiViewModel(application: Application): AndroidViewModel(application) {
                 context.dataRepository.setCookie(cookies)
                 CookieManager.getInstance().setCookie(baamBaseUrl, cookies)
             }
+
             Err(BaamError.AuthNeeded) -> {
                 onInvalidAuth()
             }
+
             is Err -> {
                 Log.e(TAG, "Error while checking auth: ${result.error}")
                 onInvalidAuth()

@@ -6,6 +6,7 @@ import android.webkit.CookieManager
 import android.webkit.WebView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -21,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import me.dcnick3.baam.api.baamBaseUrl
@@ -53,7 +54,7 @@ private class AuthWevViewClient(val vm: ApiViewModel) : AccompanistWebViewClient
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun AuthScreen(vm: ApiViewModel = viewModel()) {
+fun AuthScreen(vm: ApiViewModel = hiltViewModel()) {
     val state = rememberWebViewState(baamBaseUrl)
     val navigator = rememberWebViewNavigator()
     val webClient = remember { AuthWevViewClient(vm) }
@@ -61,6 +62,7 @@ fun AuthScreen(vm: ApiViewModel = viewModel()) {
 
     if (cookie == null) {
         WebView(
+            modifier = Modifier.fillMaxHeight(),
             state = state,
             navigator = navigator,
             onCreated = { webView ->

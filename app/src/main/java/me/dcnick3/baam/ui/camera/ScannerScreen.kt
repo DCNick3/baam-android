@@ -33,8 +33,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -118,7 +118,7 @@ private class ImageAnalyzer(
 }
 
 @Composable
-fun ScannerScreen(navController: NavController, vm: ApiViewModel = viewModel()) {
+fun ScannerScreen(navController: NavController, vm: ApiViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val cameraController: LifecycleCameraController =
