@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.produceState
@@ -13,6 +14,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+private const val TAG = "NetworkUtils"
 
 private val Context.connectivityManager get(): ConnectivityManager {
     return getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -42,6 +44,9 @@ private fun ConnectivityManager.observeConnectivityAsFlow() = callbackFlow {
  */
 private val ConnectivityManager.currentConnectivityState: ConnectionState
     get() {
+        @Suppress("DEPRECATION")
+        // the deprecation doesn't make sense to us, since we only use this property to get the initial state
+        // later on the callback is used as ~~the god~~ google has intended
         val connected = allNetworks.any { network ->
             getNetworkCapabilities(network)
                 ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -53,16 +58,30 @@ private val ConnectivityManager.currentConnectivityState: ConnectionState
 
 private fun NetworkCallback(callback: (ConnectionState) -> Unit): ConnectivityManager.NetworkCallback {
     return object : ConnectivityManager.NetworkCallback() {
+        var availableNetworks = hashSetOf<Network>();
+
         override fun onAvailable(network: Network) {
-            callback(ConnectionState.Available)
+            availableNetworks.add(network)
+            Log.d(TAG, "NetworkCallback::onAvailable $network [$availableNetworks]")
+
+            if (availableNetworks.size == 1) {
+                Log.d(TAG, "a network has become available, reporting internet")
+                callback(ConnectionState.Available)
+            }
         }
 
         override fun onLost(network: Network) {
-            callback(ConnectionState.Unavailable)
+            availableNetworks.remove(network)
+            Log.d(TAG, "NetworkCallback::onLost $network [$availableNetworks]")
+
+            if (availableNetworks.isEmpty()) {
+                Log.d(TAG, "no networks available anymore, reporting no internet")
+                callback(ConnectionState.Unavailable)
+            }
         }
 
         override fun onUnavailable() {
-            callback(ConnectionState.Unavailable)
+            throw UnsupportedOperationException()
         }
     }
 }
