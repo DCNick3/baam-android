@@ -4,9 +4,7 @@ import android.util.Log
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import com.github.michaelbull.result.map
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.CookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
@@ -111,7 +109,7 @@ class BaamApi internal constructor() {
         followRedirects = false
     }
 
-    private suspend inline fun <reified R> handleCall(makeRequest: (HttpClient) -> HttpResponse): ApiResult<R> {
+    private suspend inline fun handleCall(makeRequest: (HttpClient) -> HttpResponse): ApiResult<Unit> {
         val response = try {
             makeRequest(client)
         } catch (e: IOException) {
@@ -127,17 +125,18 @@ class BaamApi internal constructor() {
             Log.e(TAG, "HTTP error: ${response.status}\n${response.bodyAsText()}")
             return Err(BaamError.HttpError(response.status))
         }
-        return Ok(response.body())
+        return Ok(Unit)
     }
 
-    suspend fun getSessions(): ApiResult<List<AttendanceSession>> {
+    // This API call is only used to check the auth cookie, so it's fine to ignore the response
+    suspend fun getSessions(): ApiResult<Unit> {
         return handleCall { client ->
             client.get("api/AttendanceSession/")
         }
     }
 
-    suspend fun submitChallenge(code: String, challenge: String): ApiResult<String> {
-        val result: ApiResult<JsonPrimitive>? = withTimeoutOrNull(1000) {
+    suspend fun submitChallenge(code: String, challenge: String): ApiResult<Unit> {
+        val result: ApiResult<Unit>? = withTimeoutOrNull(1000) {
             handleCall { client ->
                 client.post("api/AttendanceSession/$code/submitChallenge") {
                     contentType(ContentType.Application.Json)
@@ -146,10 +145,6 @@ class BaamApi internal constructor() {
             }
         }
         return (result ?: Err(BaamError.NetworkError(IOException("Timeout"))))
-            .map {
-                assert(it.isString)
-                it.content
-            }
     }
 }
 

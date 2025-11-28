@@ -119,7 +119,7 @@ class ApiViewModel @Inject constructor(
                         val feedback = when (val result =
                             baamApi.submitChallenge(challenge.code, challenge.challenge)) {
                             is Ok -> {
-                                ChallengeResult.Success(result.value)
+                                ChallengeResult.Success(challenge.code)
                             }
 
                             is Err -> {

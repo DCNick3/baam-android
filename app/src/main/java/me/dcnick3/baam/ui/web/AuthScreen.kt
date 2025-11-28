@@ -55,7 +55,7 @@ private class AuthWevViewClient(val vm: ApiViewModel) : AccompanistWebViewClient
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun AuthScreen(vm: ApiViewModel = hiltViewModel()) {
-    val state = rememberWebViewState(baamBaseUrl)
+    val state = rememberWebViewState(baamBaseUrl + "ScanQrCode")
     val navigator = rememberWebViewNavigator()
     val webClient = remember { AuthWevViewClient(vm) }
     val cookie by webClient.cookie.collectAsState()
