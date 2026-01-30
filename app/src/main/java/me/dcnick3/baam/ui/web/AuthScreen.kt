@@ -40,8 +40,15 @@ private class AuthWevViewClient(val vm: ApiViewModel) : AccompanistWebViewClient
     val cookie get() = _cookie.asStateFlow()
 
     override fun onPageFinished(view: WebView, url: String?) {
+        // make sure cookies are written to disk
+        // not doing this can (rarely?) make us lose the cookies,
+        //  causing SuccessScreen to (confusingly) redirect the user to Uni SSO
+        val cookieManager = CookieManager.getInstance()
+        if (cookieManager.getCookie(url) != null) {
+            cookieManager.flush()
+        }
+
         if (url?.startsWith(baamBaseUrl) == true) {
-            val cookieManager = CookieManager.getInstance()
             val cookie = cookieManager.getCookie(baamBaseUrl)
             Log.i(TAG, "Got baam cookies!")
             _cookie.value = cookie
